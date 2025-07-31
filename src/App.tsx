@@ -121,3 +121,174 @@ const EditValueModal = ({ isOpen, onClose, onConfirm, initialValue, label }: Edi
     </div>
   );
 };
+
+function App() {
+  const [charikCount, setCharikCount] = useState(1);
+  const [altToz, setAltToz] = useState<TozType>(
+    calculateFromCharikCount(1, ALT_PERCENTAGES, ALT_TOTAL_PER_CHARIK)
+  );
+  const [ustToz, setUstToz] = useState<TozType>(
+    calculateFromCharikCount(1, UST_PERCENTAGES, UST_TOTAL_PER_CHARIK)
+  );
+
+  const [isCharikModalOpen, setIsCharikModalOpen] = useState(false);
+  const [tempCharikModalValue, setTempCharikModalValue] = useState<number>(0);
+
+  const [isTozModalOpen, setIsTozModalOpen] = useState(false);
+  const [currentEditingTozKey, setCurrentEditingTozKey] = useState<keyof TozType | null>(null);
+  const [tempTozModalValue, setTempTozModalValue] = useState<number>(0);
+  const [editingTozType, setEditingTozType] = useState<'alt' | 'ust' | null>(null);
+
+  useEffect(() => {
+    setAltToz(calculateFromCharikCount(charikCount, ALT_PERCENTAGES, ALT_TOTAL_PER_CHARIK));
+    setUstToz(calculateFromCharikCount(charikCount, UST_PERCENTAGES, UST_TOTAL_PER_CHARIK));
+  }, [charikCount]);
+
+  const handleCharikChange = (value: number) => {
+    const newValue = isNaN(value) ? 0 : value;
+    setCharikCount(Math.max(1, newValue));
+  };
+
+  const handleAltChange = (key: keyof TozType, value: number) => {
+    const { toz, charikCount: newCharikCount } = calculateFromOneValue(
+      key, value, ALT_PERCENTAGES, ALT_TOTAL_PER_CHARIK
+    );
+    setCharikCount(Math.max(1, newCharikCount));
+    setAltToz(toz);
+  };
+
+  const handleUstChange = (key: keyof TozType, value: number) => {
+    const { toz, charikCount: newCharikCount } = calculateFromOneValue(
+      key, value, UST_PERCENTAGES, UST_TOTAL_PER_CHARIK
+    );
+    setCharikCount(Math.max(1, newCharikCount));
+    setUstToz(toz);
+  };
+
+  const handleReset = () => {
+    setCharikCount(1);
+  };
+
+  const openTozModal = (key: keyof TozType, currentValue: number, type: 'alt' | 'ust') => {
+    setCurrentEditingTozKey(key);
+    setTempTozModalValue(currentValue);
+    setIsTozModalOpen(true);
+    setEditingTozType(type);
+  };
+
+  const closeTozModal = () => {
+    setIsTozModalOpen(false);
+    setCurrentEditingTozKey(null);
+    setTempTozModalValue(0);
+    setEditingTozType(null);
+  };
+
+  const handleTozModalConfirm = (confirmedValue: number) => {
+    if (currentEditingTozKey && editingTozType) {
+      if (editingTozType === 'alt') {
+        handleAltChange(currentEditingTozKey, confirmedValue);
+      } else {
+        handleUstChange(currentEditingTozKey, confirmedValue);
+      }
+    }
+    closeTozModal();
+  };
+
+  const openCharikModal = () => {
+    setTempCharikModalValue(charikCount);
+    setIsCharikModalOpen(true);
+  };
+
+  const closeCharikModal = () => {
+    setIsCharikModalOpen(false);
+    setTempCharikModalValue(0);
+  };
+
+  const handleCharikModalConfirm = (confirmedValue: number) => {
+    handleCharikChange(confirmedValue);
+    closeCharikModal();
+  };
+
+  const renderInputs = (
+    title: string,
+    data: TozType,
+    type: 'alt' | 'ust'
+  ) => (
+    <div className="p-6 border border-gray-200 rounded-xl shadow-lg bg-white transform transition-all duration-300 hover:shadow-xl hover:scale-[1.01]">
+      <h2 className="text-2xl font-extrabold text-blue-800 mb-4 text-center">{title}</h2>
+      {(["a", "b", "c", "d", "total"] as (keyof TozType)[]).map((key) => (
+        <div key={key} className="flex items-center justify-between gap-4 my-3">
+          <label className="w-24 text-lg font-medium text-gray-700 uppercase">{key}:</label>
+          <input
+            type="text"
+            readOnly
+            className="flex-1 p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-200 text-right cursor-pointer"
+            value={data[key].toFixed(2)}
+            onClick={() => openTozModal(key, data[key], type)}
+          />
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 sm:p-6 lg:p-8 font-inter">
+      <div className="w-full max-w-5xl mx-auto space-y-8 bg-white p-8 rounded-2xl shadow-2xl">
+        <h1 className="text-4xl font-extrabold text-center text-blue-900 mb-8 tracking-tight">
+          ÇARIK TOZ HESAPLAYICI
+        </h1>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 p-6 bg-blue-50 rounded-xl shadow-inner border border-blue-200">
+          <label htmlFor="charik-count" className="text-xl font-semibold text-blue-700">
+            Çarık Sayısı:
+          </label>
+          <input
+            id="charik-count"
+            type="text"
+            readOnly
+            className="w-full sm:w-40 p-3 border border-blue-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-200 text-center text-xl font-bold text-blue-800 cursor-pointer"
+            value={charikCount.toFixed(2)}
+            onClick={openCharikModal}
+          />
+          <button
+            onClick={handleReset}
+            className="mt-4 sm:mt-0 px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75"
+          >
+            Sıfırla
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {renderInputs("ALT TOZ", altToz, 'alt')}
+          {renderInputs("ÜST TOZ", ustToz, 'ust')}
+        </div>
+
+        <p className="text-center text-gray-600 text-sm mt-8">
+          Değerleri girdikçe diğer değerler otomatik olarak hesaplanır. Değeri değiştirmek için kutuya tıklayın, açılan pencerede değeri girip onaylayın.
+        </p>
+      </div>
+
+      {isCharikModalOpen && (
+        <EditValueModal
+          isOpen={isCharikModalOpen}
+          onClose={closeCharikModal}
+          onConfirm={handleCharikModalConfirm}
+          initialValue={charikCount}
+          label="ÇARIK SAYISI"
+        />
+      )}
+
+      {isTozModalOpen && currentEditingTozKey && (
+        <EditValueModal
+          isOpen={isTozModalOpen}
+          onClose={closeTozModal}
+          onConfirm={handleTozModalConfirm}
+          initialValue={tempTozModalValue}
+          label={currentEditingTozKey.toUpperCase()}
+        />
+      )}
+    </div>
+  );
+}
+
+export default App;
